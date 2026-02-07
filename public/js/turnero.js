@@ -144,16 +144,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             await Storage.agregarTurno(turnoData);
 
             // Mensaje de WhatsApp
-            const mensaje = `*HOLA BARBERÍA IP*\n\n` +
-                            `*Cliente:* ${turnoData.nombre}\n` +
-                            `*Servicio:* ${turnoData.servicioNombre}\n` +
-                            `*Fecha:* ${turnoData.fecha}\n` +
-                            `*Hora:* ${turnoData.hora} hs\n\n` +
+            // 1. Asegúrate de que el número tenga el código de país (549 para Argentina)
+            const numeroAdmin = "5493425014195"; 
+
+            // 2. Construcción del mensaje
+            const mensaje = `*HOLA BARBERÍA IP*%0A%0A` +
+                            `*Cliente:* ${turnoData.nombre}%0A` +
+                            `*Servicio:* ${turnoData.servicioNombre}%0A` +
+                            `*Fecha:* ${turnoData.fecha}%0A` +
+                            `*Hora:* ${turnoData.hora} hs%0A%0A` +
                             `_Confirmado vía Web_`;
 
-            const url = `https://wa.me/3425014195?text=${encodeURIComponent(mensaje)}`;
+            // 3. Usar api.whatsapp.com para mayor compatibilidad
+            const url = `https://api.whatsapp.com/send?phone=${numeroAdmin}&text=${mensaje}`;
+            
+            // Intentar abrir
             window.open(url, '_blank');
             
+            // Limpiar formulario
             form.reset();
             totalDisplay.innerText = '$0';
             selectHora.disabled = true;
