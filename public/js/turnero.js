@@ -90,6 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // 3. Envío de Turno con Reconocimiento de Cliente
+    // 3. Envío de Turno con Reconocimiento de Cliente
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -100,28 +101,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if(!telefono || telefono.length < 8) return alert("Ingresa un WhatsApp válido.");
 
+        // Bloqueamos el botón para evitar doble click
+        const btnSubmit = form.querySelector('button[type="submit"]');
+        const originalBtnText = btnSubmit.innerHTML;
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = "Procesando...";
+
         try {
-            // --- LÓGICA DE IDENTIFICACIÓN ---
+            // --- LÓGICA DE BASE DE DATOS ---
             const clientes = await Storage.getClientes();
             const nombreNormalizado = normalizar(nombreInput);
-            
-            // Buscamos si existe un cliente con el mismo nombre normalizado
             let clienteEncontrado = clientes.find(c => normalizar(`${c.nombre} ${c.apellido || ''}`) === nombreNormalizado);
 
             let finalClienteId = null;
-
             if (clienteEncontrado) {
-                // Si existe, usamos su ID
                 finalClienteId = clienteEncontrado.id;
             } else {
-                // Si no existe, creamos la ficha de cliente automáticamente
                 const partesNombre = nombreInput.split(' ');
-                const soloNombre = partesNombre[0];
-                const soloApellido = partesNombre.slice(1).join(' ');
-
                 const nuevoCliente = {
-                    nombre: soloNombre,
-                    apellido: soloApellido,
+                    nombre: partesNombre[0],
+                    apellido: partesNombre.slice(1).join(' '),
                     telefono: telefono,
                     visitas: 0
                 };
@@ -131,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const turnoData = {
                 nombre: nombreInput,
-                clienteId: finalClienteId, // Vinculamos el turno al cliente
+                clienteId: finalClienteId,
                 telefono: telefono,
                 fecha: inputFecha.value,
                 hora: selectHora.value,
@@ -141,13 +140,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 asistio: null 
             };
 
+            // Guardamos en Firebase
             await Storage.agregarTurno(turnoData);
 
-            // Mensaje de WhatsApp
-            // 1. Asegúrate de que el número tenga el código de país (549 para Argentina)
+            // --- REDIRECCIÓN DE WHATSAPP ---
             const numeroAdmin = "5493425014195"; 
-
-            // 2. Construcción del mensaje
             const mensaje = `*HOLA BARBERÍA IP*%0A%0A` +
                             `*Cliente:* ${turnoData.nombre}%0A` +
                             `*Servicio:* ${turnoData.servicioNombre}%0A` +
@@ -155,19 +152,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                             `*Hora:* ${turnoData.hora} hs%0A%0A` +
                             `_Confirmado vía Web_`;
 
-            // 3. Usar api.whatsapp.com para mayor compatibilidad
-            const url = `https://api.whatsapp.com/send?phone=${numeroAdmin}&text=${mensaje}`;
+            // En lugar de window.open, usamos location.href que es más efectivo en móviles
+            const urlWhatsApp = `https://api.whatsapp.com/send?phone=${numeroAdmin}&text=${mensaje}`;
             
-            // Intentar abrir
-            window.open(url, '_blank');
-            
-            // Limpiar formulario
+            // Limpiamos el formulario antes de irnos
             form.reset();
-            totalDisplay.innerText = '$0';
-            selectHora.disabled = true;
             
+            // Redirigir
+            window.location.href = urlWhatsApp;
+
         } catch (error) {
             console.error(error);
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = originalBtnText;
         }
     });
 });
