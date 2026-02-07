@@ -90,81 +90,69 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // 3. Envío de Turno con Reconocimiento de Cliente
-    // 3. Envío de Turno con Reconocimiento de Cliente
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    const btnWhatsapp = document.getElementById('btn-whatsapp');
 
-        if(!servicioSeleccionado) return alert("Por favor, selecciona un servicio.");
+    // Función para actualizar el enlace de WhatsApp dinámicamente
+    const actualizarLink = () => {
+        const nombre = document.getElementById('nombre').value;
+        const fecha = inputFecha.value;
+        const hora = selectHora.value;
+        const servicio = servicioSeleccionado ? servicioSeleccionado.nombre : "";
 
+        if (nombre && fecha && hora && servicio) {
+            const numeroAdmin = "5493425014195";
+            const mensaje = encodeURIComponent(
+                `*HOLA BARBERÍA IP*\n\n` +
+                `*Cliente:* ${nombre}\n` +
+                `*Servicio:* ${servicio}\n` +
+                `*Fecha:* ${fecha}\n` +
+                `*Hora:* ${hora} hs\n\n` +
+                `_Confirmado vía Web_`
+            );
+            btnWhatsapp.href = `https://api.whatsapp.com/send?phone=${numeroAdmin}&text=${mensaje}`;
+        }
+    };
+
+    // Escuchar cambios en todo el formulario para tener el link listo
+    form.addEventListener('input', actualizarLink);
+    form.addEventListener('change', actualizarLink);
+
+    // Al hacer clic en el botón/enlace
+    btnWhatsapp.addEventListener('click', async (e) => {
         const nombreInput = document.getElementById('nombre').value;
         const telefono = document.getElementById('telefono').value;
 
-        if(!telefono || telefono.length < 8) return alert("Ingresa un WhatsApp válido.");
+        // Validaciones manuales antes de salir
+        if (!nombreInput || !inputFecha.value || !selectHora.value || !servicioSeleccionado) {
+            e.preventDefault();
+            return alert("Por favor, completa todos los campos.");
+        }
 
-        // Bloqueamos el botón para evitar doble click
-        const btnSubmit = form.querySelector('button[type="submit"]');
-        const originalBtnText = btnSubmit.innerHTML;
-        btnSubmit.disabled = true;
-        btnSubmit.innerText = "Procesando...";
+        if (!telefono || telefono.length < 8) {
+            e.preventDefault();
+            return alert("Ingresa un WhatsApp válido.");
+        }
 
+        // GUARDAR EN FIREBASE (Se hace en segundo plano mientras se abre WhatsApp)
         try {
-            // --- LÓGICA DE BASE DE DATOS ---
-            const clientes = await Storage.getClientes();
-            const nombreNormalizado = normalizar(nombreInput);
-            let clienteEncontrado = clientes.find(c => normalizar(`${c.nombre} ${c.apellido || ''}`) === nombreNormalizado);
-
-            let finalClienteId = null;
-            if (clienteEncontrado) {
-                finalClienteId = clienteEncontrado.id;
-            } else {
-                const partesNombre = nombreInput.split(' ');
-                const nuevoCliente = {
-                    nombre: partesNombre[0],
-                    apellido: partesNombre.slice(1).join(' '),
-                    telefono: telefono,
-                    visitas: 0
-                };
-                const res = await Storage.agregarCliente(nuevoCliente);
-                finalClienteId = res.id;
-            }
-
             const turnoData = {
                 nombre: nombreInput,
-                clienteId: finalClienteId,
                 telefono: telefono,
                 fecha: inputFecha.value,
                 hora: selectHora.value,
-                servicioId: servicioSeleccionado.id,
                 servicioNombre: servicioSeleccionado.nombre,
                 precio: servicioSeleccionado.precio,
                 asistio: null 
             };
-
-            // Guardamos en Firebase
-            await Storage.agregarTurno(turnoData);
-
-            // --- REDIRECCIÓN DE WHATSAPP ---
-            const numeroAdmin = "5493425014195"; 
-            const mensaje = `*HOLA BARBERÍA IP*%0A%0A` +
-                            `*Cliente:* ${turnoData.nombre}%0A` +
-                            `*Servicio:* ${turnoData.servicioNombre}%0A` +
-                            `*Fecha:* ${turnoData.fecha}%0A` +
-                            `*Hora:* ${turnoData.hora} hs%0A%0A` +
-                            `_Confirmado vía Web_`;
-
-            // En lugar de window.open, usamos location.href que es más efectivo en móviles
-            const urlWhatsApp = `https://api.whatsapp.com/send?phone=${numeroAdmin}&text=${mensaje}`;
             
-            // Limpiamos el formulario antes de irnos
-            form.reset();
+            // Registramos el turno sin esperar (para no frenar la apertura de WhatsApp)
+            Storage.agregarTurno(turnoData);
             
-            // Redirigir
-            window.location.href = urlWhatsApp;
+            // Opcional: limpiar el formulario después de un segundo
+            setTimeout(() => form.reset(), 1000);
 
         } catch (error) {
-            console.error(error);
-            btnSubmit.disabled = false;
-            btnSubmit.innerHTML = originalBtnText;
+            console.error("Error al guardar:", error);
         }
     });
 });
