@@ -35,6 +35,8 @@
                         class="nav-link px-3 py-2 text-sm font-bold hover:text-blue-600">Clientes</button>
                     <button onclick="router('servicios')"
                         class="nav-link px-3 py-2 text-sm font-bold hover:text-blue-600">Servicios</button>
+                    <button onclick="router('configuracion')"
+                        class="nav-link px-3 py-2 text-sm font-bold hover:text-blue-600">Configuración</button>
                 </div>
 
                 <div class="flex items-center">
@@ -55,6 +57,8 @@
                 class="block w-full text-left p-3 font-bold text-gray-700 hover:bg-gray-50 rounded-xl">Clientes</button>
             <button onclick="router('servicios')"
                 class="block w-full text-left p-3 font-bold text-gray-700 hover:bg-gray-50 rounded-xl">Servicios</button>
+            <button onclick="router('configuracion')"
+                class="block w-full text-left p-3 font-bold text-gray-700 hover:bg-gray-50 rounded-xl">Configuración</button>
         </div>
     </nav>
 
@@ -227,6 +231,16 @@
                     </table>
                 </div>
             </div>
+        </div>
+
+        <div id="view-configuracion" class="view hidden">
+            <div class="mb-6">
+                <h2 class="text-3xl font-black text-slate-900 tracking-tighter">Configuración General</h2>
+                <br>
+                <p class="text-gray-500">Administra horarios y disponibilidad</p>
+            </div>
+
+            <div id="seccion-configuracion" class="space-y-6"></div>
         </div>
 
     </main>

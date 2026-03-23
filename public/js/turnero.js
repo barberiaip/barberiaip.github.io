@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 1. Cargar Servicios desde Firebase
     const servicios = await Storage.getServicios();
-    serviciosContainer.innerHTML = ''; 
+    serviciosContainer.innerHTML = '';
     servicios.forEach(s => {
         const div = document.createElement('div');
         div.innerHTML = `
@@ -49,44 +49,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. Lógica de Disponibilidad
     inputFecha.addEventListener('change', async (e) => {
         const fechaSeleccionada = e.target.value;
-        if(!fechaSeleccionada) return;
+        if (!fechaSeleccionada) return;
 
         const fechaObj = new Date(fechaSeleccionada + 'T00:00:00');
         const diaSemana = fechaObj.getDay();
 
-        selectHora.innerHTML = '<option>Consultando disponibilidad...</option>';
-        selectHora.disabled = true;
+        const config = await Storage.getConfig();
+        const configDia = config.horarios[diaSemana];
 
-        if (diaSemana === 0) {
-            alert("Los domingos la barbería permanece cerrada.");
+        if (!configDia || !configDia.activo) {
             inputFecha.value = '';
-            selectHora.innerHTML = '<option>Cerrado</option>';
+            selectHora.innerHTML = '<option value="">Cerrado</option>';
+            selectHora.disabled = true; // Lo mantenemos deshabilitado si está cerrado
             return;
         }
+
+        // --- AQUÍ ESTÁ LA SOLUCIÓN ---
+        selectHora.disabled = false; // Habilitamos el select para que se pueda desplegar
+        selectHora.innerHTML = '<option value="">-- Seleccionar hora --</option>';
 
         const todosLosTurnos = await Storage.getTurnos();
         const ocupados = todosLosTurnos
             .filter(t => t.fecha === fechaSeleccionada)
             .map(t => t.hora);
 
-        selectHora.innerHTML = '';
-        let inicio = 10, fin = 20;
-        let huboLibres = false;
+        const aMinutos = (h) => {
+            const [hrs, mins] = h.split(':').map(Number);
+            return hrs * 60 + mins;
+        };
 
-        for (let h = inicio; h < fin; h++) {
-            for (let m of ['00', '30']) {
-                const horaStr = `${h < 10 ? '0' + h : h}:${m}`;
-                if (!ocupados.includes(horaStr)) {
-                    const opt = document.createElement('option');
-                    opt.value = horaStr;
-                    opt.innerText = `${horaStr} hs`;
-                    selectHora.appendChild(opt);
-                    huboLibres = true;
-                }
+        const inicioTotal = aMinutos(configDia.abre);
+        const finTotal = aMinutos(configDia.cierra);
+
+        for (let tiempo = inicioTotal; tiempo < finTotal; tiempo += 30) {
+            const h = Math.floor(tiempo / 60);
+            const m = tiempo % 60;
+            const horaStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+            if (!ocupados.includes(horaStr)) {
+                const opt = document.createElement('option');
+                opt.value = horaStr;
+                opt.innerText = `${horaStr} hs`;
+                selectHora.appendChild(opt);
             }
         }
-        selectHora.disabled = !huboLibres;
-        if (!huboLibres) selectHora.innerHTML = '<option>No hay turnos disponibles</option>';
+
+        if (selectHora.options.length <= 1) {
+            selectHora.innerHTML = '<option value="">No hay turnos disponibles</option>';
+            selectHora.disabled = true; // Si no hay turnos, lo bloqueamos de nuevo
+        }
     });
 
     // 3. Envío de Turno con Reconocimiento de Cliente
@@ -142,12 +153,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 hora: selectHora.value,
                 servicioNombre: servicioSeleccionado.nombre,
                 precio: servicioSeleccionado.precio,
-                asistio: null 
+                asistio: null
             };
-            
+
             // Registramos el turno sin esperar (para no frenar la apertura de WhatsApp)
             Storage.agregarTurno(turnoData);
-            
+
             // Opcional: limpiar el formulario después de un segundo
             setTimeout(() => form.reset(), 1000);
 

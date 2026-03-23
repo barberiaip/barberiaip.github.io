@@ -205,3 +205,44 @@ export async function renderCaja() {
         }
     });
 }
+
+export async function renderConfiguracion(configManual = null) {
+    const container = document.getElementById('seccion-configuracion');
+    if (!container) return;
+
+    // Si pasamos configManual, usamos esa. Si no, la pedimos al Storage (DB)
+    const config = configManual || await Storage.getConfig();
+    const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+    let html = `<div class="max-w-2xl mx-auto space-y-4 p-4">`;
+
+    [1, 2, 3, 4, 5, 6, 0].forEach(diaIdx => {
+        const h = config.horarios[diaIdx];
+        // Aquí usamos h.activo para decidir el estado visual
+        html += `
+            <div class="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm ${!h.activo ? 'bg-gray-50' : ''}">
+                <div class="flex items-center gap-4">
+                    <input type="checkbox" 
+                        ${h.activo ? 'checked' : ''} 
+                        onchange="toggleDia(${diaIdx}, this.checked)"
+                        class="w-6 h-6 rounded border-gray-300 text-blue-600">
+                    <span class="font-bold ${h.activo ? 'text-slate-700' : 'text-gray-400'} w-24">
+                        ${diasSemana[diaIdx]}
+                    </span>
+                </div>
+                <div class="flex items-center gap-2 ${!h.activo ? 'opacity-20 pointer-events-none' : ''}">
+                    <input type="time" value="${h.abre}" class="..." onchange="updateHora(${diaIdx}, 'abre', this.value)">
+                    <span class="text-gray-400 text-xs">-</span>
+                    <input type="time" value="${h.cierra}" class="..." onchange="updateHora(${diaIdx}, 'cierra', this.value)">
+                </div>
+            </div>`;
+    });
+
+    html += `
+        <button onclick="guardarConfiguracion()" class="w-full mt-6 bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-lg">
+            GUARDAR CAMBIOS
+        </button>
+    </div>`;
+
+    container.innerHTML = html;
+}

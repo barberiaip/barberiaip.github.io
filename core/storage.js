@@ -2,7 +2,7 @@
 import { db } from '../admin/js/firebase-config.js';
 import {
     collection, addDoc, getDocs, updateDoc, doc, deleteDoc,
-    query, where, increment, getDoc
+    query, where, increment, getDoc, setDoc
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const Storage = {
@@ -77,9 +77,8 @@ const Storage = {
     },
 
     async actualizarCliente(id, datosNuevos) {
-        let clientes = await this.getClientes();
-        clientes = clientes.map(c => c.id === id ? { ...c, ...datosNuevos } : c);
-        localStorage.setItem('clientes', JSON.stringify(clientes));
+        const ref = doc(db, "clientes", id);
+        await updateDoc(ref, datosNuevos);
     },
 
     async eliminarCliente(id) {
@@ -132,6 +131,42 @@ const Storage = {
             concepto: `${tipo.toUpperCase()}: ${prod.nombre} (Cant: ${cantidad})`,
             monto: tipo === 'venta' ? (prod.precio * cantidad) : (costoUnitario * cantidad)
         });
+    },
+
+    // --- CONFIGURACIÓN ---
+    async getConfig() {
+        try {
+            const docRef = doc(db, "configuracion", "general");
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                return docSnap.data();
+            } else {
+                // Si no existe en Firebase, creamos una por defecto
+                const defaultConfig = {
+                    horarios: {
+                        1: { activo: true, abre: "09:00", cierra: "19:00" },
+                        2: { activo: true, abre: "09:00", cierra: "19:00" },
+                        3: { activo: true, abre: "09:00", cierra: "19:00" },
+                        4: { activo: true, abre: "09:00", cierra: "19:00" },
+                        5: { activo: true, abre: "09:00", cierra: "19:00" },
+                        6: { activo: true, abre: "09:00", cierra: "13:00" },
+                        0: { activo: false, abre: "00:00", cierra: "00:00" }
+                    }
+                };
+                await setDoc(docRef, defaultConfig);
+                return defaultConfig;
+            }
+        } catch (error) {
+            console.error("Error al obtener config:", error);
+            return null;
+        }
+    },
+
+    async saveConfig(configData) {
+        const docRef = doc(db, "configuracion", "general");
+        // Importante: usamos setDoc para sobrescribir la configuración global
+        await setDoc(docRef, configData);
     }
 };
 

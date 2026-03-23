@@ -251,6 +251,43 @@ async function eliminarProducto(id) {
     }
 }
 
+// --- FUNCIONES DE CONFIGURACIÓN ---
+
+let configTemporal = null; // Fuente de verdad local
+
+window.toggleDia = async function(diaIdx, activo) {
+    if (!configTemporal) {
+        configTemporal = await Storage.getConfig();
+    }
+
+    // Aplicamos el cambio solo en nuestra variable local
+    configTemporal.horarios[diaIdx].activo = activo;
+
+    // IMPORTANTE: Le pasamos los datos locales al render para que NO vaya a la DB todavía
+    const { renderConfiguracion } = await import('./ui.js');
+    renderConfiguracion(configTemporal); 
+};
+
+async function updateHora(diaIdx, tipo, valor) {
+    if(!configTemporal) configTemporal = await Storage.getConfig();
+    configTemporal.horarios[diaIdx][tipo] = valor;
+}
+
+async function guardarConfiguracion() {
+    try {
+        if(!configTemporal) {
+            return;
+        }
+        
+        await Storage.saveConfig(configTemporal);
+        
+        if (window.router) window.router('configuracion');
+    } catch (error) {
+        console.error("Error al guardar:", error);
+    }
+}
+
+
 // --- REGISTRO GLOBAL (Al final para asegurar que las funciones existan) ---
 window.openModal = openModal;
 window.closeModal = closeModal;
@@ -273,3 +310,6 @@ window.toggleMobileMenu = function() {
     const menu = document.getElementById('mobile-menu');
     if (menu) menu.classList.toggle('hidden');
 };
+window.toggleDia = toggleDia;
+window.updateHora = updateHora;
+window.guardarConfiguracion = guardarConfiguracion;

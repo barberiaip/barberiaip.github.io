@@ -1,9 +1,9 @@
 // admin/js/router.js
-import { renderHome, renderAgenda, renderCaja, renderClientes, renderServiciosConfig } from './ui.js';
+import { renderHome, renderAgenda, renderCaja, renderClientes, renderServiciosConfig, renderConfiguracion } from './ui.js';
 
 export async function router(view) {
     document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-    
+
     const targetView = document.getElementById(`view-${view}`);
     if (targetView) targetView.classList.remove('hidden');
 
@@ -17,6 +17,7 @@ export async function router(view) {
             case 'caja': await renderCaja(); break;
             case 'clientes': await renderClientes(); break;
             case 'servicios': await renderServiciosConfig(); break;
+            case 'configuracion': await renderConfiguracion(); break;
         }
     } catch (error) {
         console.error(`Error en vista ${view}:`, error);
